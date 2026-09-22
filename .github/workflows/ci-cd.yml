@@ -1,0 +1,145 @@
+name: Cloud FinOps CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test:
+    name: Test both applications
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            Cloud_Cost_Prediction_And_Optimization/requirements.txt
+            CloudOptima-3/requirements.txt
+
+      - name: Install cost project dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Cloud_Cost_Prediction_And_Optimization/requirements.txt
+
+      - name: Run cost project tests
+        working-directory: Cloud_Cost_Prediction_And_Optimization
+        env:
+          PYTHONPATH: .
+        run: pytest tests -q
+
+      - name: Install CloudOptima dependencies
+        run: |
+          pip install -r CloudOptima-3/requirements.txt
+
+      - name: Run CloudOptima tests
+        working-directory: CloudOptima-3
+        env:
+          PYTHONPATH: .
+        run: pytest tests -q
+
+  integration:
+    name: System integration smoke test
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            Cloud_Cost_Prediction_And_Optimization/requirements.txt
+            CloudOptima-3/requirements.txt
+
+      - name: Install runtime dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r Cloud_Cost_Prediction_And_Optimization/requirements.txt
+          pip install -r CloudOptima-3/requirements.txt
+
+      - name: Start merged gateway and smoke test public routes
+        run: |
+          python - <<'PY'
+          import subprocess
+          import sys
+          import time
+          import urllib.request
+
+          proc = subprocess.Popen(
+              [sys.executable, 'run.py', '--project', 'merged', '--port', '8000'],
+              cwd='.',
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT,
+              text=True,
+          )
+
+          try:
+              deadline = time.time() + 60
+              urls = [
+                  'http://127.0.0.1:8000/',
+                  'http://127.0.0.1:8000/cost-optimization/',
+                  'http://127.0.0.1:8000/cloudoptima/',
+              ]
+              ready = False
+
+              while time.time() < deadline:
+                  for url in urls:
+                      try:
+                          with urllib.request.urlopen(url, timeout=5) as response:
+                              print(f'{url} -> {response.status}')
+                              ready = True
+                      except Exception:
+                          pass
+                  if ready:
+                      break
+                  time.sleep(3)
+              if not ready:
+                  raise RuntimeError('Merged gateway never became ready for smoke testing.')
+          finally:
+              proc.terminate()
+              try:
+                  proc.wait(timeout=20)
+              except subprocess.TimeoutExpired:
+                  proc.kill()
+          PY
+
+  deploy:
+    name: Deploy image to GitHub Container Registry
+    needs: integration
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Build and push cost app image
+        run: |
+          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/cloud-cost-prediction:${{ github.sha }}
+          docker build -t "$IMAGE_NAME" -f Cloud_Cost_Prediction_And_Optimization/Dockerfile Cloud_Cost_Prediction_And_Optimization
+          docker push "$IMAGE_NAME"

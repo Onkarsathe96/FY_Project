@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8fc">
+  <title>Cloud FinOps Optimizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="/dashboard/style.css">
+</head>
+
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-mark">⌁</span>
+        <span><strong>Cloud FinOps</strong><small>OPTIMIZER</small></span>
+      </a>
+      <nav class="nav">
+        <a class="nav-link active" href="#overview"><span>◈</span> Overview</a>
+        <a class="nav-link" href="#spend"><span>◒</span> Spend analysis</a>
+        <a class="nav-link" href="#resources"><span>◫</span> Resources</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="tip-card">
+          <span class="tip-icon">✦</span>
+          <strong>Make every cloud dollar count.</strong>
+          <p>Review your idle resources regularly to keep spend lean.</p>
+        </div>
+        <span class="version">v1.0 · FinOps workspace</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">CLOUD COST CONTROL CENTER</p>
+          <h1>Good afternoon, team <span class="wave">✦</span></h1>
+          <p class="subtitle">A clear view of spend, forecasts, and optimization opportunities.</p>
+        </div>
+        <div class="top-actions">
+          <span id="last-updated" class="updated">Not synced yet</span>
+          <button id="refresh-button" class="icon-button" title="Refresh dashboard"
+            aria-label="Refresh dashboard">↻</button>
+          <div class="avatar">CF</div>
+        </div>
+      </header>
+
+      <section id="overview" class="connection-banner">
+        <div class="connection-icon">☁</div>
+        <div class="connection-copy">
+          <strong id="connection-title">Checking AWS connection...</strong>
+          <span id="connection-detail">Connecting to the local API</span>
+        </div>
+        <span id="connection-status" class="status-pill pending">Checking</span>
+        <button id="sync-button" class="button primary">Sync AWS data <span>→</span></button>
+      </section>
+
+      <div id="toast" class="toast" role="status"></div>
+      <section class="metrics-grid">
+        <article class="metric-card accent-blue">
+          <div class="metric-top"><span>Cost records</span><span class="metric-icon">▦</span></div><strong
+            id="metric-costs">—</strong><small>Last 30 days</small>
+        </article>
+        <article class="metric-card accent-purple">
+          <div class="metric-top"><span>Forecast points</span><span class="metric-icon">⌁</span></div><strong
+            id="metric-forecasts">—</strong><small>Next 30 days · AWS</small>
+        </article>
+        <article class="metric-card accent-orange">
+          <div class="metric-top"><span>Anomalies</span><span class="metric-icon">△</span></div><strong
+            id="metric-anomalies">—</strong><small>Needs attention</small>
+        </article>
+        <article class="metric-card accent-green">
+          <div class="metric-top"><span>Optimization candidates</span><span class="metric-icon">◫</span></div><strong
+            id="metric-resources">—</strong><small>Idle, stopped, or low use</small>
+        </article>
+      </section>
+
+      <section id="spend" class="content-grid">
+        <article class="panel chart-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AWS PREDICTION DATA</p>
+              <h2>Recent spend · 30 days</h2>
+              <p class="panel-description">Real AWS billing data only</p>
+            </div><span id="currency-label" class="select-like">AWS · —</span>
+          </div>
+          <div id="spend-chart" class="chart-wrap">
+            <div class="empty-state">Loading spend data...</div>
+          </div>
+          <div id="spend-range" class="chart-footer">AWS Cost Explorer · UnblendedCost</div>
+        </article>
+        <article class="panel forecast-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AWS PREDICTIVE INSIGHT</p>
+              <h2>Forecast · 30 days</h2>
+              <p class="panel-description">Generated from your AWS account history</p>
+            </div><span class="forecast-badge">30 days</span>
+          </div>
+          <div id="forecast-chart" class="chart-wrap">
+            <div class="empty-state">Run analysis to create forecasts.</div>
+          </div>
+          <div id="forecast-range" class="chart-footer">Run analysis to create the AWS forecast.</div>
+          <button id="analysis-button" class="button secondary">Run forecast analysis <span>→</span></button>
+        </article>
+      </section>
+
+      <section class="content-grid lower-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AWS SERVICE USAGE</p>
+              <h2>Min to max service usage</h2>
+              <p class="panel-description">Daily AWS billing-record count, lowest to highest</p>
+            </div>
+          </div>
+          <div id="service-usage" class="breakdown-list">
+            <div class="empty-state">Loading AWS services...</div>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AWS COST DISTRIBUTION</p>
+              <h2>Cost per service</h2>
+              <p class="panel-description">Total AWS UnblendedCost over 30 days</p>
+            </div>
+          </div>
+          <div id="service-cost" class="breakdown-list">
+            <div class="empty-state">Loading AWS costs...</div>
+          </div>
+        </article>
+        <article class="panel anomaly-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">AWS RISK SIGNALS</p>
+              <h2>Anomalies</h2>
+              <p class="panel-description">Detected in AWS prediction data</p>
+            </div><span id="anomaly-count" class="count-badge">0</span>
+          </div>
+          <div id="anomalies" class="anomaly-list">
+            <div class="empty-state">No anomalies detected.</div>
+          </div>
+        </article>
+      </section>
+
+      <section id="resources" class="panel resources-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">COST OPTIMIZATION · CONNECTED ACCOUNTS</p>
+            <h2>Idle resources</h2>
+            <p class="panel-description">Empty, unattached, stopped, and otherwise idle resources detected in connected
+              cloud accounts.</p>
+          </div><span id="resource-count" class="count-badge">0 candidates</span>
+        </div>
+        <div id="resources-list" class="resources-list">
+          <div class="empty-state">Loading resources...</div>
+        </div>
+      </section>
+      <footer>Cloud FinOps Optimizer · Data is retrieved from your configured local API.</footer>
+    </main>
+  </div>
+  <script src="/dashboard/app.js" defer></script>
+</body>
+
+</html>

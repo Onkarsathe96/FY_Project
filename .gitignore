@@ -1,0 +1,61 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs and runtime artifacts
+*.log
+logs/
+*.pid
+
+# Build and packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Docker/local data
+*.sqlite3
+*.db
+postgres_data/
+
+# Test outputs
+.pytest_cache/
+coverage.xml
+
+# Temporary folders
+.tmp/
+tmp/
+
+# Project-specific generated folders
+CloudOptima-3/.pytest_cache/
+Cloud_Cost_Prediction_And_Optimization/.pytest_cache/
+
+# Ignore all notebooks checkpoints if used later
+.ipynb_checkpoints/

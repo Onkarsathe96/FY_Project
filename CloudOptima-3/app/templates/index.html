@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudOptima | FinOps Cost Intelligence</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent-blue: #0284c7;
+            --accent-green: #059669;
+            --accent-amber: #d97706;
+            --accent-purple: #7c3aed;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding: 24px;
+        }
+
+        /* Top Header */
+        .top-navbar {
+            background-color: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .brand-title {
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: #0f172a;
+        }
+        .brand-title span { color: var(--accent-blue); }
+
+        /* Metric Cards */
+        .metric-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .metric-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+        .metric-val-emerald { color: var(--accent-green); font-weight: 700; font-size: 1.8rem; }
+        .metric-val-cyan { color: var(--accent-blue); font-weight: 700; font-size: 1.8rem; }
+        .metric-val-amber { color: var(--accent-amber); font-weight: 700; font-size: 1.8rem; }
+
+        /* Dashboard Panels */
+        .dash-panel {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 24px;
+        }
+        .panel-heading {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 16px;
+        }
+
+        /* Drag and Drop Zone */
+        .dropzone-box {
+            border: 2px dashed #94a3b8;
+            border-radius: 12px;
+            background-color: #f1f5f9;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .dropzone-box:hover, .dropzone-box.dragover {
+            border-color: var(--accent-blue);
+            background-color: #e0f2fe;
+        }
+        .dropzone-icon {
+            font-size: 2rem;
+            color: var(--accent-blue);
+            margin-bottom: 8px;
+        }
+
+        /* Table */
+        .table-container {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+        }
+        .table-custom th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .table-custom td {
+            padding: 10px 12px;
+            font-size: 0.88rem;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid p-0">
+    <!-- Header -->
+    <div class="top-navbar d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+            <div class="brand-title">⚡ Cloud<span>Optima</span></div>
+            <span class="badge bg-light text-primary border">Offline Multi-CSV Ingestion</span>
+        </div>
+        <button class="btn btn-outline-danger btn-sm" onclick="resetMemory()">Reset All Loaded Data</button>
+    </div>
+
+    <!-- Drag and Drop Upload Area -->
+    <div class="dash-panel mb-4">
+        <div class="panel-heading">📂 Upload / Drag & Drop CSV Files</div>
+        <div class="dropzone-box" id="dropzone" onclick="document.getElementById('fileInput').click()">
+            <div class="dropzone-icon">☁️</div>
+            <div class="fw-bold">Drag and drop one or multiple CSV files here</div>
+            <div class="small text-muted mt-1">or <span class="text-primary text-decoration-underline">browse files from your computer</span></div>
+            <input type="file" id="fileInput" multiple accept=".csv" style="display: none;" onchange="handleFiles(this.files)">
+        </div>
+        <div id="uploadStatus" class="small mt-2 text-primary fw-semibold"></div>
+    </div>
+
+    <!-- KPI Summary Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="metric-card">
+                <div class="metric-title">Projected 30-Day Cloud Bill</div>
+                <div class="metric-val-emerald mt-1" id="predTotal">$0.00</div>
+               
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <div class="metric-title">Estimated Daily Spend</div>
+                <div class="metric-val-cyan mt-1" id="predDaily">$0.00</div>
+                <div class="small text-muted"></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="metric-card">
+                <div class="metric-title">Potential Monthly Savings</div>
+                <div class="metric-val-amber mt-1" id="totalSavings">$0.00</div>
+                <div class="small text-muted"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="dash-panel">
+                <div class="panel-heading">📊 Max to Min Cost Services</div>
+                <canvas id="costChart" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dash-panel">
+                <div class="panel-heading">📈 Most to Least Used Services</div>
+                <canvas id="usageChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prediction Timeline -->
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="dash-panel">
+                <div class="panel-heading">🔮 30-Day Future Spend Prediction Forecast</div>
+                <canvas id="forecastChart" height="90"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loaded Files & Recommendations -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="dash-panel">
+                <div class="panel-heading">📁 Available / Loaded CSV Files</div>
+                <div class="table-container">
+                    <table class="table table-custom table-hover">
+                        <thead>
+                            <tr><th>File Name</th><th>Size</th><th>Status</th><th>Action</th></tr>
+                        </thead>
+                        <tbody id="fileTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="dash-panel">
+                <div class="panel-heading">💡 Cost Saving Actions & Recommendations</div>
+                <div class="table-container">
+                    <table class="table table-custom table-hover">
+                        <thead>
+                            <tr><th>Service</th><th>Recommended Action</th><th>Monthly Savings</th></tr>
+                        </thead>
+                        <tbody id="recTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let costChart, usageChart, forecastChart;
+
+// Drag and Drop Event Listeners
+const dropzone = document.getElementById('dropzone');
+['dragenter', 'dragover'].forEach(name => {
+    dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); }, false);
+});
+['dragleave', 'drop'].forEach(name => {
+    dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); }, false);
+});
+dropzone.addEventListener('drop', (e) => {
+    handleFiles(e.dataTransfer.files);
+});
+
+async function handleFiles(files) {
+    if (!files || files.length === 0) return;
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+    }
+    
+    document.getElementById('uploadStatus').innerText = `⏳ Uploading and processing ${files.length} file(s)...`;
+    
+    try {
+        const res = await fetch('/api/ingest/upload', {
+            method: 'POST',
+            body: formData
+        });
+        const result = await res.json();
+        document.getElementById('uploadStatus').innerText = `✓ Successfully processed ${result.files_uploaded} file(s)!`;
+        setTimeout(() => document.getElementById('uploadStatus').innerText = '', 4000);
+        loadDashboard();
+    } catch (err) {
+        document.getElementById('uploadStatus').innerText = `❌ Upload failed.`;
+    }
+}
+
+async function loadDashboard() {
+    await loadFiles();
+    await loadAnalytics();
+    await loadPredictions();
+    await loadRecommendations();
+}
+
+async function loadFiles() {
+    const res = await fetch('/api/ingest/files');
+    const files = await res.json();
+    const tbody = document.getElementById('fileTableBody');
+    tbody.innerHTML = '';
+    files.forEach(f => {
+        tbody.innerHTML += `
+            <tr>
+                <td class="fw-semibold">${f.file_name}</td>
+                <td>${f.size_mb} MB</td>
+                <td><span class="badge ${f.is_loaded ? 'bg-success' : 'bg-warning'}">${f.is_loaded ? 'Loaded' : 'Pending'}</span></td>
+                <td>
+                    <button class="btn btn-primary btn-sm py-0" ${f.is_loaded ? 'disabled' : ''} onclick="loadFile('${f.file_path.replace(/\\/g, '\\\\')}')">
+                        ${f.is_loaded ? 'Added' : 'Load'}
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+}
+
+async function loadFile(filePath) {
+    await fetch('/api/ingest/process-single', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({file_path: filePath})
+    });
+    loadDashboard();
+}
+
+async function resetMemory() {
+    await fetch('/api/ingest/reset-db', {method: 'POST'});
+    loadDashboard();
+}
+
+async function loadAnalytics() {
+    const [costRes, usageRes] = await Promise.all([
+        fetch('/api/analytics/max-to-min-cost'),
+        fetch('/api/analytics/most-to-least-used')
+    ]);
+    const costData = await costRes.json();
+    const usageData = await usageRes.json();
+
+    renderBarChart('costChart', costChart, costData.map(d => d.service), costData.map(d => d.total_cost), 'Cost ($)', '#0284c7', chart => costChart = chart);
+    renderBarChart('usageChart', usageChart, usageData.map(d => d.service), usageData.map(d => d.total_usage), 'Usage Volume', '#7c3aed', chart => usageChart = chart);
+}
+
+function renderBarChart(canvasId, chartInstance, labels, data, labelName, color, setChart) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    const newChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.length ? labels : ['No Data Loaded'],
+            datasets: [{ label: labelName, data: data.length ? data : [0], backgroundColor: color, borderRadius: 6 }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+    setChart(newChart);
+}
+
+async function loadPredictions() {
+    const res = await fetch('/api/analytics/predictions');
+    const data = await res.json();
+    document.getElementById('predTotal').innerText = `$${data.summary.predicted_total_bill}`;
+    document.getElementById('predDaily').innerText = `$${data.summary.average_daily_cost}`;
+    document.getElementById('predConfidence').innerText = `Confidence: ${data.summary.confidence}`;
+
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+    if (forecastChart) forecastChart.destroy();
+    forecastChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.timeline.map(t => t.date),
+            datasets: [{
+                label: 'Forecast Daily Spend ($)',
+                data: data.timeline.map(t => t.predicted_cost),
+                borderColor: '#059669',
+                backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: { responsive: true }
+    });
+}
+
+async function loadRecommendations() {
+    const res = await fetch('/api/analytics/recommendations');
+    const recs = await res.json();
+    const tbody = document.getElementById('recTableBody');
+    tbody.innerHTML = '';
+    let savings = 0;
+    recs.forEach(r => {
+        savings += r.potential_savings_monthly;
+        tbody.innerHTML += `
+            <tr>
+                <td><strong>${r.service}</strong><br><small class="text-muted">${r.type}</small></td>
+                <td>${r.description}</td>
+                <td class="text-warning fw-bold">+$${r.potential_savings_monthly}</td>
+            </tr>
+        `;
+    });
+    document.getElementById('totalSavings').innerText = `$${savings.toFixed(2)}`;
+}
+
+window.onload = loadDashboard;
+</script>
+</body>
+</html>
