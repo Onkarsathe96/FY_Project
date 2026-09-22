@@ -139,7 +139,10 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build and push cost app image
+        shell: bash
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/cloud-cost-prediction:${{ github.sha }}
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          IMAGE_NAME="ghcr.io/${OWNER}/cloud-cost-prediction:${GITHUB_SHA}"
+          echo "Using image tag: $IMAGE_NAME"
           docker build -t "$IMAGE_NAME" -f Cloud_Cost_Prediction_And_Optimization/Dockerfile Cloud_Cost_Prediction_And_Optimization
           docker push "$IMAGE_NAME"
